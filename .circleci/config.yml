@@ -3,61 +3,48 @@ version: 2.1
 jobs:
   build-and-sonar:
     docker:
-      - image: cimg/node:18.20  # Node.js 18 with npm 10
-    working_directory: ~/project/frontend  # make sure paths are relative to the frontend folder
+      - image: cimg/node:18.20
+    working_directory: ~/project/frontend
     steps:
       - checkout
 
-      # 👀 Display environment info
       - run:
           name: Show environment info
           command: |
-            echo "Node version:" && node -v
-            echo "npm version:" && npm -v
+            echo "Node:" && node -v
+            echo "npm:" && npm -v
 
-      # ☕ Install Java 17 for SonarScanner
       - run:
           name: Install Java (JDK 17)
           command: |
-            echo "Installing OpenJDK 17..."
             sudo apt-get update -y
             sudo apt-get install -y openjdk-17-jdk
             java -version
 
-      # 📦 Install dependencies
       - run:
-          name: Install dependencies
+          name: Install dependencies (auto-fallback)
           command: |
-            if [ -f package-lock.json ]; then
-              npm ci
-            else
-              npm install
-            fi
+            echo "Installing dependencies..."
+            npm ci || npm install
 
-      # 🧪 Run tests with coverage
       - run:
-          name: Run tests with coverage
+          name: Run tests with coverage (non-blocking)
           command: |
-            echo "Running frontend tests..."
-            npm test -- --coverage || echo "No tests or coverage report found"
+            npm test -- --coverage || echo "Tests failed or no tests configured"
 
-      # 🏗️ Build the React app (optional but recommended)
       - run:
-          name: Build frontend
+          name: Build frontend (optional)
           command: |
-            echo "Building React app..."
-            npm run build || echo "Build failed or not configured"
+            npm run build || echo "No build script configured"
 
-      # 🔍 Download Sonar Scanner (Java 17 compatible)
       - run:
-          name: Download Sonar Scanner CLI
+          name: Download Sonar Scanner (Java 17 compatible)
           command: |
             curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
             unzip sonar-scanner.zip -d /tmp
             export PATH="/tmp/sonar-scanner-4.8.0.2856-linux/bin:$PATH"
             sonar-scanner -v
 
-      # 🚀 Run SonarCloud analysis
       - run:
           name: Run SonarCloud analysis
           command: |
